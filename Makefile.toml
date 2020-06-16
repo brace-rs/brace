@@ -1,0 +1,22 @@
+[config]
+default_to_workspace = false
+
+[env]
+RUST_BACKTRACE = "1"
+CARGO_MAKE_CLIPPY_ARGS = "${CARGO_MAKE_CLIPPY_ALL_FEATURES_WARN}"
+
+[tasks.lint]
+dependencies = [
+  "check-format",
+  "clippy",
+]
+
+[tasks.pre-git-commit]
+dependencies = [
+  "lint",
+]
+
+[tasks.pre-git-push]
+dependencies = [
+  "test",
+]

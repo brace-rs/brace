@@ -1,0 +1,231 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+    - master
+
+jobs:
+  lint:
+    name: Lint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+        profile: minimal
+        override: true
+
+    - name: Rustfmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+    - name: Clippy
+      uses: brace-rs/clippy-check@b75a09651cc90c3921c41888815fe6a7a0b0adae
+      with:
+        args: --all -- -D warnings
+        name: Lint / Results
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        target:
+        - x86_64-unknown-linux-gnu
+        include:
+        - target: x86_64-unknown-linux-gnu
+          toolchain: stable
+          os: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+        toolchain: ${{ matrix.toolchain }}
+        profile: minimal
+        override: true
+
+    - name: Generate lockfile
+      uses: actions-rs/cargo@v1
+      with:
+        command: generate-lockfile
+
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-cargo-registry
+      with:
+        path: ~/.cargo/registry
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache cargo git
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-cargo-git
+      with:
+        path: ~/.cargo/git
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache target
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-target-${{ matrix.target }}-release
+      with:
+        path: target
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target ${{ matrix.target }}
+
+    - name: Clean cache
+      run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
+
+  test:
+    name: Test / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        target:
+        - x86_64-unknown-linux-gnu
+        include:
+        - target: x86_64-unknown-linux-gnu
+          toolchain: stable
+          os: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+        toolchain: ${{ matrix.toolchain }}
+        profile: minimal
+        override: true
+
+    - name: Generate lockfile
+      uses: actions-rs/cargo@v1
+      with:
+        command: generate-lockfile
+
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-cargo-registry
+      with:
+        path: ~/.cargo/registry
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache cargo git
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-cargo-git
+      with:
+        path: ~/.cargo/git
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache target
+      uses: actions/cache@v1
+      env:
+        cache-name: ${{ matrix.os }}-target-${{ matrix.target }}-debug
+      with:
+        path: target
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --target ${{ matrix.target }}
+
+    - name: Clean cache
+      run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Generate lockfile
+      uses: actions-rs/cargo@v1
+      with:
+        command: generate-lockfile
+
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      env:
+        cache-name: ubuntu-latest-cargo-registry
+      with:
+        path: ~/.cargo/registry
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache cargo git
+      uses: actions/cache@v1
+      env:
+        cache-name: ubuntu-latest-cargo-git
+      with:
+        path: ~/.cargo/git
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Cache target
+      uses: actions/cache@v1
+      env:
+        cache-name: ubuntu-latest-target-x86_64-unknown-linux-gnu-tarpaulin
+      with:
+        path: target
+        key: ${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ env.cache-name }}-
+
+    - name: Generate code coverage
+      uses: actions-rs/tarpaulin@v0.1
+      with:
+        version: latest
+        args: --ignore-tests
+
+    - name: Upload code coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload code coverage artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: code-coverage-report
+        path: cobertura.xml
+
+    - name: Clean cache
+      run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
