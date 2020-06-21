@@ -5,6 +5,7 @@ use clap::{crate_version, App, AppSettings};
 mod web;
 
 #[actix_rt::main]
+#[allow(unused_mut, unused_variables)]
 async fn main() -> anyhow::Result<()> {
     let mut app = App::new("brace")
         .about("The brace application framework")
