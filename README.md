@@ -4,7 +4,7 @@
 [![Coverage Status][coverage-badge]][coverage-badge-url]
 [![License][license-badge]][license-badge-url]
 
-An application framework.
+The brace application framework.
 
 ## Contributing
 
