@@ -1,8 +1,31 @@
-use clap::{crate_version, App};
+use std::process::exit;
 
-fn main() {
-    App::new("brace")
+use clap::{crate_version, App, AppSettings};
+
+mod web;
+
+#[actix_rt::main]
+#[allow(unused_mut, unused_variables)]
+async fn main() -> anyhow::Result<()> {
+    let mut app = App::new("brace")
         .about("The brace application framework")
         .version(crate_version!())
-        .get_matches();
+        .setting(AppSettings::SubcommandRequired);
+
+    #[cfg(feature = "web")]
+    {
+        app = app.subcommand(self::web::command());
+    }
+
+    let matches = app.get_matches();
+    let subcommand = matches.subcommand();
+
+    #[cfg(feature = "web")]
+    {
+        if let ("web", Some(args)) = subcommand {
+            return self::web::matched(args).await;
+        }
+    }
+
+    exit(1);
 }
