@@ -29,7 +29,7 @@ jobs:
         args: --all -- --check
 
     - name: Clippy
-      uses: brace-rs/clippy-check@b75a09651cc90c3921c41888815fe6a7a0b0adae
+      uses: actions-rs/clippy-check@v1
       with:
         args: --all -- -D warnings
         name: Lint / Results
