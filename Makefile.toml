@@ -5,6 +5,10 @@ default_to_workspace = false
 RUST_BACKTRACE = "1"
 CARGO_MAKE_CLIPPY_ARGS = "${CARGO_MAKE_CLIPPY_ALL_FEATURES_WARN}"
 
+[tasks.run]
+command = "cargo"
+args = ["run", "--bin", "brace", "--all-features", "--", "${@}"]
+
 [tasks.lint]
 dependencies = [
   "check-format",
