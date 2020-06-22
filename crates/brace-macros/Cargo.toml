@@ -1,0 +1,15 @@
+[package]
+name = "brace-macros"
+version = "0.1.0"
+authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
+description = "The brace application framework macros."
+repository = "https://github.com/brace-rs/brace"
+license = "MIT OR Apache-2.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+brace-hook-gen = { git = "https://github.com/brace-rs/brace-hook", rev = "2b6985eb178c1cd448cd551eae4ee7e883bd8bbb" }
+syn = "1.0"
