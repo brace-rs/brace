@@ -1,31 +1,27 @@
-use std::process::exit;
-
-use clap::{crate_version, App, AppSettings};
+use brace::util::{hook, FutureResult};
+use clap::{crate_version, App, AppSettings, ArgMatches};
 
 mod web;
 
+#[hook]
+fn subcommand() -> App<'static> {}
+
+#[hook]
+fn subcommand_matched(name: &str, args: &ArgMatches) -> FutureResult<'static, (), anyhow::Error> {}
+
 #[actix_rt::main]
-#[allow(unused_mut, unused_variables)]
 async fn main() -> anyhow::Result<()> {
-    let mut app = App::new("brace")
+    let app = App::new("brace")
         .about("The brace application framework")
         .version(crate_version!())
-        .setting(AppSettings::SubcommandRequired);
+        .setting(AppSettings::SubcommandRequired)
+        .subcommands(hook::invoke(subcommand::with()));
 
-    #[cfg(feature = "web")]
-    {
-        app = app.subcommand(self::web::command());
-    }
-
-    let matches = app.get_matches();
-    let subcommand = matches.subcommand();
-
-    #[cfg(feature = "web")]
-    {
-        if let ("web", Some(args)) = subcommand {
-            return self::web::matched(args).await;
+    if let (name, Some(args)) = app.get_matches().subcommand() {
+        for res in hook::invoke(subcommand_matched::with(name, args)) {
+            res.await?;
         }
     }
 
-    exit(1);
+    Ok(())
 }

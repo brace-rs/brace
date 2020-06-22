@@ -20,6 +20,9 @@ web = ["actix-web"]
 # core
 actix-rt = "1.0"
 anyhow = "1.0"
+brace-hook = { git = "https://github.com/brace-rs/brace-hook", rev = "2b6985eb178c1cd448cd551eae4ee7e883bd8bbb" }
+brace-macros = { path = "../brace-macros" }
+brace-util = { git = "https://github.com/brace-rs/brace-util", rev = "cb8c036c46b30d92d393c435167779dd17505d04" }
 # cli
 clap = { version = "3.0.0-beta.1", git = "https://github.com/clap-rs/clap", rev = "81457178fa7e055775867ca659b37798b5ae9584", optional = true }
 # web
